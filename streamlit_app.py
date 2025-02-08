@@ -51,14 +51,15 @@ def color_analysis():
        # Color Distribution Section
        st.header("Balloon Color Distribution")
 
-       # Simple heatmap
+       # Simple heatmap with adjusted height
        heatmap = alt.Chart(color_dist).mark_rect().encode(
            x='balloon_color:N',
            y='player:N',
            color='hits:Q',
            tooltip=['player', 'balloon_color', 'hits']
        ).properties(
-           title='Balloon Color Distribution by Player'
+           title='Balloon Color Distribution by Player',
+           height=500  # Increased height
        )
 
        # Display the chart
