@@ -8,6 +8,8 @@ def leaderboard():
    
    try:
        df = pd.read_csv("data/game_events.leaderboard.csv", index_col=False)
+       # Drop the unnamed column
+       df = df.drop('Unnamed: 0', axis=1)
        df = df.astype({'total_score': int})
        max_score = int(df['total_score'].max())
        
@@ -49,21 +51,26 @@ def color_analysis():
        # Color Distribution Section
        st.header("Balloon Color Distribution")
 
-       # Create base heatmap chart
-       base = alt.Chart(color_dist).encode(
-           x=alt.X('balloon_color:N', title='Balloon Color'),
-           y=alt.Y('player:N', title='Player', sort=alt.EncodingSortField(field='hits', op='sum', order='descending'))
+       # Simpler Altair chart configuration
+       chart = alt.Chart(color_dist).mark_rect().encode(
+           x='balloon_color:N',
+           y='player:N',
+           color=alt.Color(
+               'hits:Q',
+               scale=alt.Scale(scheme='orangered'),
+               legend=alt.Legend(title='Total Hits')
+           ),
+           tooltip=['player', 'balloon_color', 'hits']
+       ).properties(
+           width='container',
+           height=400,
+           title='Balloon Color Distribution by Player'
        )
 
-       # Create heatmap with rectangles
-       heatmap = base.mark_rect().encode(
-           color=alt.Color('hits:Q',
-                         scale=alt.Scale(scheme='orangered'),
-                         title='Total Hits')
-       )
-
-       # Add text labels
-       text = base.mark_text().encode(
+       # Add text overlay
+       text_chart = alt.Chart(color_dist).mark_text(baseline='middle').encode(
+           x='balloon_color:N',
+           y='player:N',
            text='hits:Q',
            color=alt.condition(
                alt.datum.hits > color_dist['hits'].median(),
@@ -72,20 +79,15 @@ def color_analysis():
            )
        )
 
-       # Combine charts
-       chart = (heatmap + text).properties(
-           width=600,
-           height=400,
-           title='Balloon Color Distribution by Player'
+       # Combine charts and display
+       final_chart = (chart + text_chart).configure_view(
+           strokeWidth=0
        ).configure_axis(
-           labelFontSize=12,
-           titleFontSize=14
-       ).configure_title(
-           fontSize=16
+           grid=False
        )
 
-       # Display chart
-       st.altair_chart(chart, use_container_width=True)
+       # Display the chart
+       st.altair_chart(final_chart, use_container_width=True)
        
        # Color Trend Analysis
        st.header("Color Performance Over Time")
@@ -203,6 +205,9 @@ st.set_page_config(
    page_icon=":bar_chart:",
    layout="wide"
 )
+
+# Set Altair theme
+alt.themes.enable('dark')
 
 # Configure the pages with Material icons
 pg = st.navigation([
