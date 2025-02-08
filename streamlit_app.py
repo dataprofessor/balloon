@@ -7,12 +7,20 @@ def leaderboard():
     st.title("Leaderboard")
     
     try:
+        # Load main leaderboard data
         df = pd.read_csv("data/game_events.leaderboard.csv", index_col=False)
         # Drop the unnamed column
         df = df.drop('Unnamed: 0', axis=1)
         df = df.astype({'total_score': int})
         max_score = int(df['total_score'].max())
         
+        # Load bonus hits data
+        bonus_pops = pd.read_csv("data/game_events.player_bonus_pops.csv", index_col=False)
+        bonus_pops = bonus_pops.drop('Unnamed: 0', axis=1)
+        bonus_pops = bonus_pops.astype({'bonus_hits': int})
+        
+        # Display main leaderboard
+        st.header("Overall Score")
         st.dataframe(
             df,
             column_config={
@@ -23,6 +31,23 @@ def leaderboard():
                     format="%d",
                     min_value=0,
                     max_value=max_score,
+                )
+            },
+            hide_index=True
+        )
+        
+        # Display bonus hits leaderboard
+        st.header("Bonus Performance")
+        st.dataframe(
+            bonus_pops,
+            column_config={
+                "player": "Player",
+                "bonus_hits": st.column_config.ProgressColumn(
+                    "Bonus Hits",
+                    help="Number of bonus hits achieved",
+                    format="%d",
+                    min_value=0,
+                    max_value=int(bonus_pops['bonus_hits'].max()),
                 )
             },
             hide_index=True
@@ -127,23 +152,6 @@ def performance_trends():
         bonus_pops = bonus_pops.astype({'bonus_hits': int})
         
         # Overall Performance Metrics
-        st.header("Bonus Performance")
-        
-        # Display bonus hits leaderboard
-        st.dataframe(
-            bonus_pops,
-            column_config={
-                "player": "Player",
-                "bonus_hits": st.column_config.ProgressColumn(
-                    "Bonus Hits",
-                    help="Number of bonus hits achieved",
-                    format="%d",
-                    min_value=0,
-                    max_value=int(bonus_pops['bonus_hits'].max()),
-                )
-            },
-            hide_index=True
-        )
         
         # Performance Trend Analysis
         st.header("Performance Over Time")
