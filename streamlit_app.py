@@ -9,7 +9,6 @@ def leaderboard():
     try:
         # Read the CSV file
         df = pd.read_csv("data/game_events.leaderboard.csv", index_col=False)
-        df
         
         # Convert numeric columns to Python native types
         df = df.astype({'total_score': int})
