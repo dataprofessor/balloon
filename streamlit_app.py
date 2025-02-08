@@ -3,19 +3,35 @@ import pandas as pd
 import numpy as np
 import altair as alt
 
-def leaderboard():
-    st.title("Leaderboard")
-    
+@st.cache_data
+def load_data():
+    """Load and preprocess the color trend data."""
     try:
-        # Load and process color trend data for total score and bonus hits
+        # Load color trend data
         color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
         color_trend = color_trend.drop('Unnamed: 0', axis=1)
+        
+        # Convert numeric columns to Python native types
         color_trend = color_trend.astype({
+            'pop_count': int,
             'score_in_window': int,
-            'bonus_hits': int,
-            'pop_count': int
+            'bonus_hits': int
         })
         
+        # Convert time windows to datetime and extract hour
+        color_trend['window_start'] = pd.to_datetime(color_trend['window_start'])
+        color_trend['window_end'] = pd.to_datetime(color_trend['window_end'])
+        color_trend['hour'] = color_trend['window_start'].dt.hour
+        
+        return color_trend
+    except Exception as e:
+        st.error(f"Error loading data: {str(e)}")
+        return None
+
+def leaderboard(color_trend):
+    st.title("Leaderboard")
+    
+    if color_trend is not None:
         # Calculate total score per player
         total_scores = color_trend.groupby('player')['score_in_window'].sum().reset_index()
         total_scores = total_scores.rename(columns={'score_in_window': 'total_score'})
@@ -63,24 +79,11 @@ def leaderboard():
                 },
                 hide_index=True
             )
-    except Exception as e:
-        st.error(f"Error loading leaderboard: {str(e)}")
 
-def color_analysis():
+def color_analysis(color_trend):
     st.title("Color Analysis")
     
-    try:
-        # Load color trend data
-        color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
-        color_trend = color_trend.drop('Unnamed: 0', axis=1)
-        
-        # Convert numeric columns to Python native types
-        color_trend = color_trend.astype({
-            'pop_count': int,
-            'score_in_window': int,
-            'bonus_hits': int
-        })
-        
+    if color_trend is not None:
         # Create color distribution from color_trend data
         color_dist = color_trend.groupby(['player', 'balloon_color'])['pop_count'].sum().reset_index()
         color_dist = color_dist.rename(columns={'pop_count': 'hits'})
@@ -118,87 +121,50 @@ def color_analysis():
 
         # Display the chart
         st.altair_chart(heatmap, use_container_width=True)
-        
-        # Color Trend Analysis
-        st.header("Color Performance Over Time")
-        
-        # Convert time windows to datetime
-        color_trend['window_start'] = pd.to_datetime(color_trend['window_start'])
-        color_trend['window_end'] = pd.to_datetime(color_trend['window_end'])
-        
-        # Allow user to select a player
-        players = sorted(color_trend['player'].unique())
-        selected_player = st.selectbox("Select Player", players)
-        
-        # Filter data for selected player
-        player_trend = color_trend[color_trend['player'] == selected_player]
-        
-        # Display trend metrics
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total Pops", int(player_trend['pop_count'].sum()))
-        with col2:
-            st.metric("Total Score", int(player_trend['score_in_window'].sum()))
-        with col3:
-            st.metric("Bonus Hits", int(player_trend['bonus_hits'].sum()))
-            
-    except Exception as e:
-        st.error(f"Error loading color analysis: {str(e)}")
 
-def performance_trends():
-    st.title("Performance Trends")
+def performance_trends(color_trend):
+    st.title("Balloon Activity Patterns")
     
-    try:
-        # Load and preprocess color trend data
-        color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
-        color_trend = color_trend.drop('Unnamed: 0', axis=1)
+    if color_trend is not None:
+        # Create player heatmap data
+        player_hourly = color_trend.groupby(['player', 'hour'])['pop_count'].sum().reset_index()
         
-        # Convert numeric columns to Python native types
-        color_trend = color_trend.astype({
-            'pop_count': int,
-            'score_in_window': int,
-            'bonus_hits': int
-        })
+        # Create color heatmap data
+        color_hourly = color_trend.groupby(['balloon_color', 'hour'])['pop_count'].sum().reset_index()
         
-        # Aggregate data by player and time window
-        pop_trend = color_trend.groupby(['player', 'window_start', 'window_end']).agg({
-            'pop_count': 'sum',
-            'score_in_window': 'sum'
-        }).reset_index()
+        # Player Heatmap
+        st.header("Player Activity by Hour")
         
-        # Performance Trend Analysis
-        st.header("Performance Over Time")
+        player_heatmap = alt.Chart(player_hourly).mark_rect().encode(
+            x=alt.X('hour:O', title='Hour of Day'),
+            y=alt.Y('player:N', title='Player'),
+            color=alt.Color('pop_count:Q', 
+                          title='Balloon Pops',
+                          scale=alt.Scale(scheme='viridis')),
+            tooltip=['player', 'hour', 'pop_count']
+        ).properties(
+            title='Balloon Pops by Player and Hour',
+            height=400
+        )
         
-        # Convert time windows to datetime
-        pop_trend['window_start'] = pd.to_datetime(pop_trend['window_start'])
-        pop_trend['window_end'] = pd.to_datetime(pop_trend['window_end'])
+        st.altair_chart(player_heatmap, use_container_width=True)
         
-        # Allow user to select a player
-        players = sorted(pop_trend['player'].unique())
-        selected_player = st.selectbox("Select Player", players)
+        # Color Heatmap
+        st.header("Balloon Colors by Hour")
         
-        # Filter data for selected player
-        player_trend = pop_trend[pop_trend['player'] == selected_player]
+        color_heatmap = alt.Chart(color_hourly).mark_rect().encode(
+            x=alt.X('hour:O', title='Hour of Day'),
+            y=alt.Y('balloon_color:N', title='Balloon Color'),
+            color=alt.Color('pop_count:Q', 
+                          title='Balloon Pops',
+                          scale=alt.Scale(scheme='viridis')),
+            tooltip=['balloon_color', 'hour', 'pop_count']
+        ).properties(
+            title='Balloon Pops by Color and Hour',
+            height=300
+        )
         
-        # Display trend metrics
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Total Pops", int(player_trend['pop_count'].sum()))
-        with col2:
-            st.metric("Total Score", int(player_trend['score_in_window'].sum()))
-            
-        # Calculate and display averages
-        st.header("Average Performance")
-        avg_stats = player_trend.agg({
-            'pop_count': 'mean',
-            'score_in_window': 'mean'
-        }).round(2)
-        
-        st.write(f"Average pops per window: {float(avg_stats['pop_count'])}")
-        st.write(f"Average score per window: {float(avg_stats['score_in_window'])}")
-        
-    except Exception as e:
-        st.error(f"Error loading performance trends: {str(e)}")
+        st.altair_chart(color_heatmap, use_container_width=True)
 
 def home():
     st.title("Welcome to Player Analytics")
@@ -220,12 +186,15 @@ st.set_page_config(
     layout="wide"
 )
 
+# Load data once at startup
+color_trend_data = load_data()
+
 # Configure the pages with Material icons
 pg = st.navigation([
-    st.Page(home, title="Home", icon=":material/home:", default=True),
-    st.Page(leaderboard, title="Leaderboard", icon=":material/leaderboard:"),
-    st.Page(color_analysis, title="Color Analysis", icon=":material/palette:"),
-    st.Page(performance_trends, title="Performance Trends", icon=":material/trending_up:")
+    st.Page(lambda: home(), title="Home", icon=":material/home:", default=True),
+    st.Page(lambda: leaderboard(color_trend_data), title="Leaderboard", icon=":material/leaderboard:"),
+    st.Page(lambda: color_analysis(color_trend_data), title="Color Analysis", icon=":material/palette:"),
+    st.Page(lambda: performance_trends(color_trend_data), title="Performance Trends", icon=":material/trending_up:")
 ])
 
 # Run the selected page
