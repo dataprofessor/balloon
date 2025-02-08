@@ -3,9 +3,23 @@ import pandas as pd
 import numpy as np
 import altair as alt
 
-# Initialize session state to store data
+# Initialize session state to store data and settings
 if 'color_trend_data' not in st.session_state:
     st.session_state.color_trend_data = None
+if 'color_scheme' not in st.session_state:
+    st.session_state.color_scheme = 'viridis'
+
+# Color scheme selection
+color_schemes = [
+    'viridis', 'magma', 'plasma', 'inferno',  # Sequential
+    'blues', 'greens', 'oranges', 'reds',      # Single color
+    'blueorange', 'brownbluegreen', 'purplegreen', 'pinkyellowgreen'  # Diverging
+]
+st.session_state.color_scheme = st.selectbox(
+    'Select Color Theme',
+    options=color_schemes,
+    index=color_schemes.index(st.session_state.color_scheme)
+)
 
 @st.cache_data
 def load_data():
@@ -133,7 +147,7 @@ def show_color_analysis():
         heatmap = alt.Chart(color_dist).mark_rect().encode(
             x='balloon_color:N',
             y='player:N',
-            color='hits:Q',
+            color=alt.Color('hits:Q', scale=alt.Scale(scheme=st.session_state.color_scheme)),
             tooltip=['player', 'balloon_color', 'hits']
         ).properties(
             title='Balloon Color Distribution by Player',
@@ -163,7 +177,7 @@ def show_performance_trends():
             y=alt.Y('player:N', title='Player'),
             color=alt.Color('pop_count:Q', 
                           title='Balloon Pops',
-                          scale=alt.Scale(scheme='viridis')),
+                          scale=alt.Scale(scheme=st.session_state.color_scheme)),
             tooltip=['player', 'hour', 'pop_count']
         ).properties(
             title='Balloon Pops by Player and Hour',
