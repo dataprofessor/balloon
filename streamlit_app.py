@@ -31,38 +31,64 @@ def leaderboard():
        st.error(f"Error loading leaderboard: {str(e)}")
 
 def color_analysis():
-    st.title("Color Analysis")
-    
-    try:
-        # Load color distribution data
-        color_dist = pd.read_csv("data/game_events.player_colored_pops.csv", index_col=False)
-        color_dist = color_dist.drop('Unnamed: 0', axis=1)
-        color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
-        color_trend = color_trend.drop('Unnamed: 0', axis=1)
-        
-        # Convert numeric columns to Python native types
-        color_dist = color_dist.astype({'hits': int})
-        color_trend = color_trend.astype({
-            'pop_count': int,
-            'score_in_window': int,
-            'bonus_hits': int
-        })
-        
-        # Color Distribution Section
-        st.header("Balloon Color Distribution")
+   st.title("Color Analysis")
+   
+   try:
+       # Load color distribution data
+       color_dist = pd.read_csv("data/game_events.player_colored_pops.csv", index_col=False)
+       color_dist = color_dist.drop('Unnamed: 0', axis=1)
+       color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
+       color_trend = color_trend.drop('Unnamed: 0', axis=1)
+       
+       # Convert numeric columns to Python native types
+       color_dist = color_dist.astype({'hits': int})
+       color_trend = color_trend.astype({
+           'pop_count': int,
+           'score_in_window': int,
+           'bonus_hits': int
+       })
+       
+       # Color Distribution Section
+       st.header("Balloon Color Distribution")
 
-        # Simple heatmap
-        heatmap = alt.Chart(color_dist).mark_rect().encode(
-            x='balloon_color:N',
-            y='player:N',
-            color='hits:Q',
-            tooltip=['player', 'balloon_color', 'hits']
-        ).properties(
-            title='Balloon Color Distribution by Player'
-        )
+       # Simple heatmap
+       heatmap = alt.Chart(color_dist).mark_rect().encode(
+           x='balloon_color:N',
+           y='player:N',
+           color='hits:Q',
+           tooltip=['player', 'balloon_color', 'hits']
+       ).properties(
+           title='Balloon Color Distribution by Player'
+       )
 
-        # Display the chart
-        st.altair_chart(heatmap, use_container_width=True)
+       # Display the chart
+       st.altair_chart(heatmap, use_container_width=True)
+       
+       # Color Trend Analysis
+       st.header("Color Performance Over Time")
+       
+       # Convert time windows to datetime
+       color_trend['window_start'] = pd.to_datetime(color_trend['window_start'])
+       color_trend['window_end'] = pd.to_datetime(color_trend['window_end'])
+       
+       # Allow user to select a player
+       players = sorted(color_trend['player'].unique())
+       selected_player = st.selectbox("Select Player", players)
+       
+       # Filter data for selected player
+       player_trend = color_trend[color_trend['player'] == selected_player]
+       
+       # Display trend metrics
+       col1, col2, col3 = st.columns(3)
+       with col1:
+           st.metric("Total Pops", int(player_trend['pop_count'].sum()))
+       with col2:
+           st.metric("Total Score", int(player_trend['score_in_window'].sum()))
+       with col3:
+           st.metric("Bonus Hits", int(player_trend['bonus_hits'].sum()))
+           
+   except Exception as e:
+       st.error(f"Error loading color analysis: {str(e)}")
 
 def performance_trends():
    st.title("Performance Trends")
@@ -154,9 +180,6 @@ st.set_page_config(
    page_icon=":bar_chart:",
    layout="wide"
 )
-
-# Set Altair theme
-alt.themes.enable('dark')
 
 # Configure the pages with Material icons
 pg = st.navigation([
