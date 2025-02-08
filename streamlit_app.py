@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 def leaderboard():
    st.title("Leaderboard")
@@ -34,7 +36,6 @@ def color_analysis():
        # Load color distribution data
        color_dist = pd.read_csv("data/game_events.player_colored_pops.csv", index_col=False)
        color_dist = color_dist.drop('Unnamed: 0', axis=1)
-       
        color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
        color_trend = color_trend.drop('Unnamed: 0', axis=1)
        
@@ -49,31 +50,27 @@ def color_analysis():
        # Color Distribution Section
        st.header("Balloon Color Distribution")
        
-       # Create percentage distribution
-       color_dist['percentage'] = color_dist.groupby('player')['hits'].transform(
-           lambda x: (x / x.sum()) * 100
-       ).astype(float)  # Convert to float
+       # Create pivot table for heatmap
+       heatmap_data = color_dist.pivot(index='player', columns='balloon_color', values='hits')
        
-       # Display color distribution
-       st.dataframe(
-           color_dist,
-           column_config={
-               "player": "Player",
-               "balloon_color": "Color",
-               "hits": st.column_config.NumberColumn(
-                   "Total Hits",
-                   format="%d"
-               ),
-               "percentage": st.column_config.ProgressColumn(
-                   "Distribution",
-                   help="Percentage of hits by color",
-                   format="%.1f%%",
-                   min_value=0,
-                   max_value=100,
-               )
-           },
-           hide_index=True
-       )
+       # Create heatmap
+       fig, ax = plt.subplots(figsize=(12, 8))
+       sns.heatmap(heatmap_data, 
+                  annot=True,  # Show values in cells
+                  fmt='d',     # Format as integers
+                  cmap='YlOrRd',  # Yellow to Orange to Red color scheme
+                  cbar_kws={'label': 'Total Hits'},
+                  ax=ax)
+       
+       plt.title('Balloon Color Distribution by Player')
+       plt.xlabel('Balloon Color')
+       plt.ylabel('Player')
+       
+       # Rotate x-axis labels for better readability
+       plt.xticks(rotation=45)
+       
+       # Display the heatmap
+       st.pyplot(fig)
        
        # Color Trend Analysis
        st.header("Color Performance Over Time")
@@ -184,6 +181,13 @@ def home():
    - **Color Analysis**: Analyze balloon color distributions and trends
    - **Performance Trends**: Track player performance and bonus achievements
    """)
+
+# Set page configuration
+st.set_page_config(
+   page_title="Player Analytics",
+   page_icon=":bar_chart:",
+   layout="wide"
+)
 
 # Configure the pages with Material icons
 pg = st.navigation([
