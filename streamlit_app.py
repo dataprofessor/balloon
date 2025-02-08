@@ -19,39 +19,44 @@ def leaderboard():
         bonus_pops = bonus_pops.drop('Unnamed: 0', axis=1)
         bonus_pops = bonus_pops.astype({'bonus_hits': int})
         
-        # Display main leaderboard
-        st.header("Overall Score")
-        st.dataframe(
-            df,
-            column_config={
-                "player": "Player",
-                "total_score": st.column_config.ProgressColumn(
-                    "Total Score",
-                    help="Player's total score with visual progress bar",
-                    format="%d",
-                    min_value=0,
-                    max_value=max_score,
-                )
-            },
-            hide_index=True
-        )
+        # Create two columns for the leaderboards
+        col1, col2 = st.columns(2)
         
-        # Display bonus hits leaderboard
-        st.header("Bonus Performance")
-        st.dataframe(
-            bonus_pops,
-            column_config={
-                "player": "Player",
-                "bonus_hits": st.column_config.ProgressColumn(
-                    "Bonus Hits",
-                    help="Number of bonus hits achieved",
-                    format="%d",
-                    min_value=0,
-                    max_value=int(bonus_pops['bonus_hits'].max()),
-                )
-            },
-            hide_index=True
-        )
+        # Display main leaderboard in first column
+        with col1:
+            st.header("Overall Score")
+            st.dataframe(
+                df,
+                column_config={
+                    "player": "Player",
+                    "total_score": st.column_config.ProgressColumn(
+                        "Total Score",
+                        help="Player's total score with visual progress bar",
+                        format="%d",
+                        min_value=0,
+                        max_value=max_score,
+                    )
+                },
+                hide_index=True
+            )
+        
+        # Display bonus hits leaderboard in second column
+        with col2:
+            st.header("Bonus Performance")
+            st.dataframe(
+                bonus_pops,
+                column_config={
+                    "player": "Player",
+                    "bonus_hits": st.column_config.ProgressColumn(
+                        "Bonus Hits",
+                        help="Number of bonus hits achieved",
+                        format="%d",
+                        min_value=0,
+                        max_value=int(bonus_pops['bonus_hits'].max()),
+                    )
+                },
+                hide_index=True
+            )
     except Exception as e:
         st.error(f"Error loading leaderboard: {str(e)}")
 
@@ -79,7 +84,7 @@ def color_analysis():
         # Calculate high-level metrics
         total_pops = color_dist['hits'].sum()
         most_common_color = color_dist.groupby('balloon_color')['hits'].sum().idxmax()
-        avg_pops_per_color = color_dist.groupby('balloon_color')['hits'].sum().mean().round(1)
+        least_common_color = color_dist.groupby('balloon_color')['hits'].sum().idxmin()
         unique_colors = len(color_dist['balloon_color'].unique())
 
         # Display metrics in columns
@@ -89,7 +94,7 @@ def color_analysis():
         with col2:
             st.metric("Most Popular Color", most_common_color)
         with col3:
-            st.metric("Avg Pops per Color", avg_pops_per_color)
+            st.metric("Least Popular Color", least_common_color)
         with col4:
             st.metric("Unique Colors", unique_colors)
 
