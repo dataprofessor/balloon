@@ -2,15 +2,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# Define page functions
 def leaderboard():
     st.title("Leaderboard")
     
     try:
-        # Read the CSV file
         df = pd.read_csv("data/game_events.leaderboard.csv", index_col=False)
-        
-        # Convert numeric columns to Python native types
         df = df.astype({'total_score': int})
         max_score = int(df['total_score'].max())
         
@@ -28,18 +24,135 @@ def leaderboard():
             },
             hide_index=True
         )
-    except FileNotFoundError:
-        st.error("Could not find data/game_events.leaderboard.csv. Please ensure the file exists in the correct location.")
     except Exception as e:
-        st.error(f"An error occurred while reading the leaderboard data: {str(e)}")
+        st.error(f"Error loading leaderboard: {str(e)}")
 
-def player_stats_1():
-    st.title("Player Stats 1")
-    st.write("This page is ready for your player statistics content!")
+def color_analysis():
+    st.title("Color Analysis")
+    
+    try:
+        # Load color distribution data
+        color_dist = pd.read_csv("data/game_events.player_colored_pops.csv", index_col=False)
+        color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
+        
+        # Color Distribution Section
+        st.header("Balloon Color Distribution")
+        
+        # Group by player and calculate total hits
+        player_totals = color_dist.groupby('player')['hits'].sum().reset_index()
+        
+        # Create percentage distribution
+        color_dist['percentage'] = color_dist.groupby('player')['hits'].transform(
+            lambda x: (x / x.sum()) * 100
+        )
+        
+        # Display color distribution
+        st.dataframe(
+            color_dist,
+            column_config={
+                "player": "Player",
+                "balloon_color": "Color",
+                "hits": st.column_config.NumberColumn(
+                    "Total Hits",
+                    format="%d"
+                ),
+                "percentage": st.column_config.ProgressColumn(
+                    "Distribution",
+                    help="Percentage of hits by color",
+                    format="%.1f%%",
+                    min_value=0,
+                    max_value=100,
+                )
+            },
+            hide_index=True
+        )
+        
+        # Color Trend Analysis
+        st.header("Color Performance Over Time")
+        
+        # Convert time windows to datetime
+        color_trend['window_start'] = pd.to_datetime(color_trend['window_start'])
+        color_trend['window_end'] = pd.to_datetime(color_trend['window_end'])
+        
+        # Allow user to select a player
+        players = color_trend['player'].unique()
+        selected_player = st.selectbox("Select Player", players)
+        
+        # Filter data for selected player
+        player_trend = color_trend[color_trend['player'] == selected_player]
+        
+        # Display trend metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Pops", player_trend['pop_count'].sum())
+        with col2:
+            st.metric("Total Score", player_trend['score_in_window'].sum())
+        with col3:
+            st.metric("Bonus Hits", player_trend['bonus_hits'].sum())
+            
+    except Exception as e:
+        st.error(f"Error loading color analysis: {str(e)}")
 
-def player_stats_2():
-    st.title("Player Stats 2")
-    st.write("This page is ready for additional player statistics content!")
+def performance_trends():
+    st.title("Performance Trends")
+    
+    try:
+        # Load performance data
+        pop_trend = pd.read_csv("data/game_events.player_pop_trend.csv", index_col=False)
+        bonus_pops = pd.read_csv("data/game_events.player_bonus_pops.csv", index_col=False)
+        
+        # Overall Performance Metrics
+        st.header("Bonus Performance")
+        
+        # Display bonus hits leaderboard
+        st.dataframe(
+            bonus_pops,
+            column_config={
+                "player": "Player",
+                "bonus_hits": st.column_config.ProgressColumn(
+                    "Bonus Hits",
+                    help="Number of bonus hits achieved",
+                    format="%d",
+                    min_value=0,
+                    max_value=bonus_pops['bonus_hits'].max(),
+                )
+            },
+            hide_index=True
+        )
+        
+        # Performance Trend Analysis
+        st.header("Performance Over Time")
+        
+        # Convert time windows to datetime
+        pop_trend['window_start'] = pd.to_datetime(pop_trend['window_start'])
+        pop_trend['window_end'] = pd.to_datetime(pop_trend['window_end'])
+        
+        # Allow user to select a player
+        players = pop_trend['player'].unique()
+        selected_player = st.selectbox("Select Player", players)
+        
+        # Filter data for selected player
+        player_trend = pop_trend[pop_trend['player'] == selected_player]
+        
+        # Display trend metrics
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Total Pops", player_trend['pop_count'].sum())
+        with col2:
+            st.metric("Total Score", player_trend['score_in_window'].sum())
+            
+        # Calculate and display averages
+        st.header("Average Performance")
+        avg_stats = player_trend.agg({
+            'pop_count': 'mean',
+            'score_in_window': 'mean'
+        }).round(2)
+        
+        st.write(f"Average pops per window: {avg_stats['pop_count']}")
+        st.write(f"Average score per window: {avg_stats['score_in_window']}")
+        
+    except Exception as e:
+        st.error(f"Error loading performance trends: {str(e)}")
 
 def home():
     st.title("Welcome to Player Analytics")
@@ -50,16 +163,15 @@ def home():
     Welcome to the Player Analytics Dashboard! Use the sidebar to navigate through different sections:
 
     - **Leaderboard**: View player rankings and scores
-    - **Player Stats 1**: First set of player statistics (coming soon)
-    - **Player Stats 2**: Second set of player statistics (coming soon)
+    - **Color Analysis**: Analyze balloon color distributions and trends
+    - **Performance Trends**: Track player performance and bonus achievements
     """)
 
-# Configure the pages with Material icons
 pg = st.navigation([
     st.Page(home, title="Home", icon=":material/home:", default=True),
     st.Page(leaderboard, title="Leaderboard", icon=":material/leaderboard:"),
-    st.Page(player_stats_1, title="Player Stats 1", icon=":material/analytics:"),
-    st.Page(player_stats_2, title="Player Stats 2", icon=":material/trending_up:")
+    st.Page(color_analysis, title="Color Analysis", icon=":material/palette:"),
+    st.Page(performance_trends, title="Performance Trends", icon=":material/trending_up:")
 ])
 
 # Run the selected page
