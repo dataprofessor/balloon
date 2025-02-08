@@ -3,6 +3,13 @@ import pandas as pd
 import numpy as np
 import altair as alt
 
+# Set page configuration - MUST BE FIRST ST COMMAND
+st.set_page_config(
+    page_title="Player Analytics",
+    page_icon=":bar_chart:",
+    layout="wide"
+)
+
 # Initialize session state to store data and settings
 if 'color_trend_data' not in st.session_state:
     st.session_state.color_trend_data = None
@@ -194,7 +201,7 @@ def show_performance_trends():
             y=alt.Y('balloon_color:N', title='Balloon Color'),
             color=alt.Color('pop_count:Q', 
                           title='Balloon Pops',
-                          scale=alt.Scale(scheme='viridis')),
+                          scale=alt.Scale(scheme=st.session_state.color_scheme)),
             tooltip=['balloon_color', 'hour', 'pop_count']
         ).properties(
             title='Balloon Pops by Color and Hour',
@@ -202,13 +209,6 @@ def show_performance_trends():
         )
         
         st.altair_chart(color_heatmap, use_container_width=True)
-
-# Set page configuration
-st.set_page_config(
-    page_title="Player Analytics",
-    page_icon=":bar_chart:",
-    layout="wide"
-)
 
 # Load data once at startup
 st.session_state.color_trend_data = load_data()
