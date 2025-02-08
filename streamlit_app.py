@@ -3,6 +3,10 @@ import pandas as pd
 import numpy as np
 import altair as alt
 
+# Initialize session state to store data
+if 'color_trend_data' not in st.session_state:
+    st.session_state.color_trend_data = None
+
 @st.cache_data
 def load_data():
     """Load and preprocess the color trend data."""
@@ -28,10 +32,25 @@ def load_data():
         st.error(f"Error loading data: {str(e)}")
         return None
 
-def leaderboard(color_trend):
+def show_home():
+    st.title("Welcome to Player Analytics")
+    
+    st.markdown("""
+    ## Player Analytics Dashboard
+
+    Welcome to the Player Analytics Dashboard! Use the sidebar to navigate through different sections:
+
+    - **Leaderboard**: View player rankings and scores
+    - **Color Analysis**: Analyze balloon color distributions and trends
+    - **Performance Trends**: Track player performance and bonus achievements
+    """)
+
+def show_leaderboard():
     st.title("Leaderboard")
     
-    if color_trend is not None:
+    if st.session_state.color_trend_data is not None:
+        color_trend = st.session_state.color_trend_data
+        
         # Calculate total score per player
         total_scores = color_trend.groupby('player')['score_in_window'].sum().reset_index()
         total_scores = total_scores.rename(columns={'score_in_window': 'total_score'})
@@ -80,10 +99,12 @@ def leaderboard(color_trend):
                 hide_index=True
             )
 
-def color_analysis(color_trend):
+def show_color_analysis():
     st.title("Color Analysis")
     
-    if color_trend is not None:
+    if st.session_state.color_trend_data is not None:
+        color_trend = st.session_state.color_trend_data
+        
         # Create color distribution from color_trend data
         color_dist = color_trend.groupby(['player', 'balloon_color'])['pop_count'].sum().reset_index()
         color_dist = color_dist.rename(columns={'pop_count': 'hits'})
@@ -122,10 +143,12 @@ def color_analysis(color_trend):
         # Display the chart
         st.altair_chart(heatmap, use_container_width=True)
 
-def performance_trends(color_trend):
+def show_performance_trends():
     st.title("Balloon Activity Patterns")
     
-    if color_trend is not None:
+    if st.session_state.color_trend_data is not None:
+        color_trend = st.session_state.color_trend_data
+        
         # Create player heatmap data
         player_hourly = color_trend.groupby(['player', 'hour'])['pop_count'].sum().reset_index()
         
@@ -166,19 +189,6 @@ def performance_trends(color_trend):
         
         st.altair_chart(color_heatmap, use_container_width=True)
 
-def home():
-    st.title("Welcome to Player Analytics")
-    
-    st.markdown("""
-    ## Player Analytics Dashboard
-
-    Welcome to the Player Analytics Dashboard! Use the sidebar to navigate through different sections:
-
-    - **Leaderboard**: View player rankings and scores
-    - **Color Analysis**: Analyze balloon color distributions and trends
-    - **Performance Trends**: Track player performance and bonus achievements
-    """)
-
 # Set page configuration
 st.set_page_config(
     page_title="Player Analytics",
@@ -187,14 +197,14 @@ st.set_page_config(
 )
 
 # Load data once at startup
-color_trend_data = load_data()
+st.session_state.color_trend_data = load_data()
 
 # Configure the pages with Material icons
 pg = st.navigation([
-    st.Page(lambda: home(), title="Home", icon=":material/home:", default=True),
-    st.Page(lambda: leaderboard(color_trend_data), title="Leaderboard", icon=":material/leaderboard:"),
-    st.Page(lambda: color_analysis(color_trend_data), title="Color Analysis", icon=":material/palette:"),
-    st.Page(lambda: performance_trends(color_trend_data), title="Performance Trends", icon=":material/trending_up:")
+    st.Page(show_home, title="Home", icon=":material/home:", default=True),
+    st.Page(show_leaderboard, title="Leaderboard", icon=":material/leaderboard:"),
+    st.Page(show_color_analysis, title="Color Analysis", icon=":material/palette:"),
+    st.Page(show_performance_trends, title="Performance Trends", icon=":material/trending_up:")
 ])
 
 # Run the selected page
