@@ -16,17 +16,20 @@ if 'color_trend_data' not in st.session_state:
 if 'color_scheme' not in st.session_state:
     st.session_state.color_scheme = 'viridis'
 
-# Color scheme selection
-color_schemes = [
-    'viridis', 'magma', 'plasma', 'inferno',  # Sequential
-    'blues', 'greens', 'oranges', 'reds',      # Single color
-    'blueorange', 'brownbluegreen', 'purplegreen', 'pinkyellowgreen'  # Diverging
-]
-st.session_state.color_scheme = st.selectbox(
-    'Select Color Theme',
-    options=color_schemes,
-    index=color_schemes.index(st.session_state.color_scheme)
-)
+# Settings in sidebar
+with st.sidebar:
+    st.header("⚙️ Settings")
+    # Color scheme selection
+    color_schemes = [
+        'viridis', 'magma', 'plasma', 'inferno',  # Sequential
+        'blues', 'greens', 'oranges', 'reds',      # Single color
+        'blueorange', 'brownbluegreen', 'purplegreen', 'pinkyellowgreen'  # Diverging
+    ]
+    st.session_state.color_scheme = st.selectbox(
+        'Color Theme',
+        options=color_schemes,
+        index=color_schemes.index(st.session_state.color_scheme)
+    )
 
 @st.cache_data
 def load_data():
