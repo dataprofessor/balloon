@@ -12,7 +12,8 @@ def leaderboard():
         color_trend = color_trend.drop('Unnamed: 0', axis=1)
         color_trend = color_trend.astype({
             'score_in_window': int,
-            'bonus_hits': int
+            'bonus_hits': int,
+            'pop_count': int
         })
         
         # Calculate total score per player
@@ -148,15 +149,22 @@ def performance_trends():
     st.title("Performance Trends")
     
     try:
-        # Load performance data
-        pop_trend = pd.read_csv("data/game_events.player_pop_trend.csv", index_col=False)
-        pop_trend = pop_trend.drop('Unnamed: 0', axis=1)
+        # Load and preprocess color trend data
+        color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
+        color_trend = color_trend.drop('Unnamed: 0', axis=1)
         
         # Convert numeric columns to Python native types
-        pop_trend = pop_trend.astype({
+        color_trend = color_trend.astype({
             'pop_count': int,
-            'score_in_window': int
+            'score_in_window': int,
+            'bonus_hits': int
         })
+        
+        # Aggregate data by player and time window
+        pop_trend = color_trend.groupby(['player', 'window_start', 'window_end']).agg({
+            'pop_count': 'sum',
+            'score_in_window': 'sum'
+        }).reset_index()
         
         # Performance Trend Analysis
         st.header("Performance Over Time")
