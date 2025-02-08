@@ -7,17 +7,22 @@ def leaderboard():
     st.title("Leaderboard")
     
     try:
-        # Load main leaderboard data
-        df = pd.read_csv("data/game_events.leaderboard.csv", index_col=False)
-        # Drop the unnamed column
-        df = df.drop('Unnamed: 0', axis=1)
-        df = df.astype({'total_score': int})
-        max_score = int(df['total_score'].max())
+        # Load and process color trend data for total score and bonus hits
+        color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
+        color_trend = color_trend.drop('Unnamed: 0', axis=1)
+        color_trend = color_trend.astype({
+            'score_in_window': int,
+            'bonus_hits': int
+        })
         
-        # Load bonus hits data
-        bonus_pops = pd.read_csv("data/game_events.player_bonus_pops.csv", index_col=False)
-        bonus_pops = bonus_pops.drop('Unnamed: 0', axis=1)
-        bonus_pops = bonus_pops.astype({'bonus_hits': int})
+        # Calculate total score per player
+        total_scores = color_trend.groupby('player')['score_in_window'].sum().reset_index()
+        total_scores = total_scores.rename(columns={'score_in_window': 'total_score'})
+        total_scores = total_scores.sort_values('total_score', ascending=False)
+        
+        # Calculate total bonus hits per player
+        bonus_hits = color_trend.groupby('player')['bonus_hits'].sum().reset_index()
+        bonus_hits = bonus_hits.sort_values('bonus_hits', ascending=False)
         
         # Create two columns for the leaderboards
         col1, col2 = st.columns(2)
@@ -26,7 +31,7 @@ def leaderboard():
         with col1:
             st.header("Overall Score")
             st.dataframe(
-                df,
+                total_scores,
                 column_config={
                     "player": "Player",
                     "total_score": st.column_config.ProgressColumn(
@@ -34,7 +39,7 @@ def leaderboard():
                         help="Player's total score with visual progress bar",
                         format="%d",
                         min_value=0,
-                        max_value=max_score,
+                        max_value=int(total_scores['total_score'].max()),
                     )
                 },
                 hide_index=True
@@ -44,7 +49,7 @@ def leaderboard():
         with col2:
             st.header("Bonus Performance")
             st.dataframe(
-                bonus_pops,
+                bonus_hits,
                 column_config={
                     "player": "Player",
                     "bonus_hits": st.column_config.ProgressColumn(
@@ -52,7 +57,7 @@ def leaderboard():
                         help="Number of bonus hits achieved",
                         format="%d",
                         min_value=0,
-                        max_value=int(bonus_pops['bonus_hits'].max()),
+                        max_value=int(bonus_hits['bonus_hits'].max()),
                     )
                 },
                 hide_index=True
@@ -64,19 +69,20 @@ def color_analysis():
     st.title("Color Analysis")
     
     try:
-        # Load color distribution data
-        color_dist = pd.read_csv("data/game_events.player_colored_pops.csv", index_col=False)
-        color_dist = color_dist.drop('Unnamed: 0', axis=1)
+        # Load color trend data
         color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
         color_trend = color_trend.drop('Unnamed: 0', axis=1)
         
         # Convert numeric columns to Python native types
-        color_dist = color_dist.astype({'hits': int})
         color_trend = color_trend.astype({
             'pop_count': int,
             'score_in_window': int,
             'bonus_hits': int
         })
+        
+        # Create color distribution from color_trend data
+        color_dist = color_trend.groupby(['player', 'balloon_color'])['pop_count'].sum().reset_index()
+        color_dist = color_dist.rename(columns={'pop_count': 'hits'})
         
         # Color Distribution Section
         st.header("Balloon Color Distribution")
@@ -106,7 +112,7 @@ def color_analysis():
             tooltip=['player', 'balloon_color', 'hits']
         ).properties(
             title='Balloon Color Distribution by Player',
-            height=500  # Increased height
+            height=500
         )
 
         # Display the chart
@@ -146,17 +152,11 @@ def performance_trends():
         pop_trend = pd.read_csv("data/game_events.player_pop_trend.csv", index_col=False)
         pop_trend = pop_trend.drop('Unnamed: 0', axis=1)
         
-        bonus_pops = pd.read_csv("data/game_events.player_bonus_pops.csv", index_col=False)
-        bonus_pops = bonus_pops.drop('Unnamed: 0', axis=1)
-        
         # Convert numeric columns to Python native types
         pop_trend = pop_trend.astype({
             'pop_count': int,
             'score_in_window': int
         })
-        bonus_pops = bonus_pops.astype({'bonus_hits': int})
-        
-        # Overall Performance Metrics
         
         # Performance Trend Analysis
         st.header("Performance Over Time")
