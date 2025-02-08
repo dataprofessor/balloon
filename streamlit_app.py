@@ -35,16 +35,21 @@ def color_analysis():
         color_dist = pd.read_csv("data/game_events.player_colored_pops.csv", index_col=False)
         color_trend = pd.read_csv("data/game_events.player_color_trend.csv", index_col=False)
         
+        # Convert numeric columns to Python native types
+        color_dist = color_dist.astype({'hits': int})
+        color_trend = color_trend.astype({
+            'pop_count': int,
+            'score_in_window': int,
+            'bonus_hits': int
+        })
+        
         # Color Distribution Section
         st.header("Balloon Color Distribution")
-        
-        # Group by player and calculate total hits
-        player_totals = color_dist.groupby('player')['hits'].sum().reset_index()
         
         # Create percentage distribution
         color_dist['percentage'] = color_dist.groupby('player')['hits'].transform(
             lambda x: (x / x.sum()) * 100
-        )
+        ).astype(float)  # Convert to float
         
         # Display color distribution
         st.dataframe(
@@ -75,7 +80,7 @@ def color_analysis():
         color_trend['window_end'] = pd.to_datetime(color_trend['window_end'])
         
         # Allow user to select a player
-        players = color_trend['player'].unique()
+        players = sorted(color_trend['player'].unique())
         selected_player = st.selectbox("Select Player", players)
         
         # Filter data for selected player
@@ -84,11 +89,11 @@ def color_analysis():
         # Display trend metrics
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Total Pops", player_trend['pop_count'].sum())
+            st.metric("Total Pops", int(player_trend['pop_count'].sum()))
         with col2:
-            st.metric("Total Score", player_trend['score_in_window'].sum())
+            st.metric("Total Score", int(player_trend['score_in_window'].sum()))
         with col3:
-            st.metric("Bonus Hits", player_trend['bonus_hits'].sum())
+            st.metric("Bonus Hits", int(player_trend['bonus_hits'].sum()))
             
     except Exception as e:
         st.error(f"Error loading color analysis: {str(e)}")
@@ -100,6 +105,13 @@ def performance_trends():
         # Load performance data
         pop_trend = pd.read_csv("data/game_events.player_pop_trend.csv", index_col=False)
         bonus_pops = pd.read_csv("data/game_events.player_bonus_pops.csv", index_col=False)
+        
+        # Convert numeric columns to Python native types
+        pop_trend = pop_trend.astype({
+            'pop_count': int,
+            'score_in_window': int
+        })
+        bonus_pops = bonus_pops.astype({'bonus_hits': int})
         
         # Overall Performance Metrics
         st.header("Bonus Performance")
@@ -114,7 +126,7 @@ def performance_trends():
                     help="Number of bonus hits achieved",
                     format="%d",
                     min_value=0,
-                    max_value=bonus_pops['bonus_hits'].max(),
+                    max_value=int(bonus_pops['bonus_hits'].max()),
                 )
             },
             hide_index=True
@@ -128,7 +140,7 @@ def performance_trends():
         pop_trend['window_end'] = pd.to_datetime(pop_trend['window_end'])
         
         # Allow user to select a player
-        players = pop_trend['player'].unique()
+        players = sorted(pop_trend['player'].unique())
         selected_player = st.selectbox("Select Player", players)
         
         # Filter data for selected player
@@ -137,9 +149,9 @@ def performance_trends():
         # Display trend metrics
         col1, col2 = st.columns(2)
         with col1:
-            st.metric("Total Pops", player_trend['pop_count'].sum())
+            st.metric("Total Pops", int(player_trend['pop_count'].sum()))
         with col2:
-            st.metric("Total Score", player_trend['score_in_window'].sum())
+            st.metric("Total Score", int(player_trend['score_in_window'].sum()))
             
         # Calculate and display averages
         st.header("Average Performance")
@@ -148,8 +160,8 @@ def performance_trends():
             'score_in_window': 'mean'
         }).round(2)
         
-        st.write(f"Average pops per window: {avg_stats['pop_count']}")
-        st.write(f"Average score per window: {avg_stats['score_in_window']}")
+        st.write(f"Average pops per window: {float(avg_stats['pop_count'])}")
+        st.write(f"Average score per window: {float(avg_stats['score_in_window'])}")
         
     except Exception as e:
         st.error(f"Error loading performance trends: {str(e)}")
@@ -167,6 +179,7 @@ def home():
     - **Performance Trends**: Track player performance and bonus achievements
     """)
 
+# Configure the pages with Material icons
 pg = st.navigation([
     st.Page(home, title="Home", icon=":material/home:", default=True),
     st.Page(leaderboard, title="Leaderboard", icon=":material/leaderboard:"),
